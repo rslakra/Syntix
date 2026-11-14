@@ -1,9 +1,9 @@
 fastapi>=0.115
-uvicorn[standard]>=0.32
+uvicorn[standard]>=0.54.0
 pydantic-settings>=2.0
 sqlalchemy>=2.0
 psycopg[binary]>=3.2     # Postgres driver
 pgvector>=0.3            # vector column type + cosine operators
 python-multipart>=0.0.9  # recording uploads
 httpx2>=2.16.0              # AI provider calls and fastapi.testclient (starlette.testclient requires httpx2)
-pytest>=8.0
+pytest>=9.2.0
