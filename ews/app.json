@@ -1,0 +1,56 @@
+{
+  "expo": {
+    "name": "Syntix",
+    "slug": "syntix",
+    "scheme": "syntix",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.rslakra.syntix",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "Syntix records the meeting audio so it can be transcribed, summarised and searched.",
+        "NSCameraUsageDescription": "Syntix records meeting video when you choose to record with video."
+      }
+    },
+    "android": {
+      "package": "com.rslakra.syntix",
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "RECORD_AUDIO",
+        "CAMERA",
+        "MODIFY_AUDIO_SETTINGS"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Syntix records the meeting audio so it can be transcribed, summarised and searched."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Syntix records meeting video when you choose to record with video.",
+          "microphonePermission": "Syntix records the meeting audio so it can be transcribed, summarised and searched.",
+          "recordAudioAndroid": true,
+          "barcodeScannerEnabled": false
+        }
+      ],
+      "expo-font"
+    ]
+  }
+}

@@ -1,0 +1,83 @@
+# Local stack for Syntix iws: Postgres+pgvector, and optionally the API in a container.
+#
+#   make setup-infra   Postgres+pgvector only
+#   make stack-up      Postgres plus the API in a container (profile "app")
+#
+# The AI models are NOT run or stored here. Chat, embeddings and speech-to-text come from the
+# shared ZeroCloud stack (../../../ZeroCloud, `make start` there), which keeps the models once on
+# disk for every project. The API container joins ZeroCloud's "zerocloud" network to reach it.
+#
+# All values come from .env (see .env.sample). Published ports bind to 127.0.0.1 only.
+# Every bind mount lives under DATA_DIR. Compose does not expand "~" inside .env values, so
+# start it through `make` (which exports DATA_DIR as an absolute path) rather than directly.
+# The API container is named after APP_NAME in .env (default syntix-iws).
+
+name: syntix
+
+services:
+  postgres:
+    image: ${POSTGRES_IMAGE:-pgvector/pgvector:pg${POSTGRES_VERSION:-18}}
+    container_name: syntix-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-syntix}
+      POSTGRES_USER: ${DB_USER:-syntix}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-change-me}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
+    volumes:
+      # One folder per major version: a data directory cannot be opened by another major version.
+      - ${DATA_DIR:?Set DATA_DIR in .env}/postgres/pg${POSTGRES_VERSION:-18}:/var/lib/postgresql/data
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/00-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  iws:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: infra/Dockerfile
+    container_name: ${APP_NAME:-syntix-iws}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${API_PORT:-8080}:8080"
+    # "default" reaches postgres; "zerocloud" reaches the shared Ollama and speech-to-text.
+    networks:
+      - default
+      - zerocloud
+    # Lets the API reach a native Ollama through the host (see CONTAINER_LLM_BASE_URL in .env.sample).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      # app/config.py requires a .env file; real env vars below override its host-side values.
+      - ./.env:/app/.env:ro
+      - ${DATA_DIR:?Set DATA_DIR in .env}/recordings:/data/recordings
+    environment:
+      API_HOST: 0.0.0.0
+      API_PORT: "8080"
+      DEBUG: "false"
+      DB_BACKEND: postgres
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      STORAGE_PATH: /data/recordings
+      # localhost in .env means the host; inside the container use the ZeroCloud container names.
+      STT_BASE_URL: ${CONTAINER_STT_BASE_URL:-http://zerocloud-speech2text:8000/v1}
+      LLM_BASE_URL: ${CONTAINER_LLM_BASE_URL:-http://zerocloud-ollama:11434/v1}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+networks:
+  # Created by ZeroCloud's `make start`. Only the "app" profile uses it.
+  zerocloud:
+    name: zerocloud
+    external: true
