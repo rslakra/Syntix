@@ -1,7 +1,7 @@
 fastapi>=0.115
 uvicorn[standard]>=0.54.0
 pydantic-settings>=2.0
-sqlalchemy>=2.0
+sqlalchemy>=2.1.8
 psycopg[binary]>=3.2     # Postgres driver
 pgvector>=0.3            # vector column type + cosine operators
 python-multipart>=0.0.9  # recording uploads
